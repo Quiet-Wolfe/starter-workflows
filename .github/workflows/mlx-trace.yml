@@ -1,0 +1,47 @@
+
+name: MLX Operation Tracer
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_name:
+        description: 'Name of the model to trace'
+        required: true
+        default: 'basic_operations'
+        type: choice
+        options:
+          - basic_operations
+          - transformer_small
+          - mlp
+          - cnn
+
+jobs:
+  trace-mlx:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install mlx psutil
+
+      - name: Print system info
+        run: |
+          python -c "import platform; print(f'Architecture: {platform.machine()}')"
+          python -c "import mlx.core; print(f'MLX device: {mlx.core.default_device()}')"
+
+      - name: Run MLX tracer
+        run: |
+          python mlx_tracer.py --model ${{ github.event.inputs.model_name }}
+
+      - name: Upload trace artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: mlx-traces-${{ github.event.inputs.model_name }}
+          path: ./traces/*.json
